@@ -1,0 +1,869 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model all_feeds {
+  feed_url    String? @db.VarChar
+  feed_name   String? @db.VarChar
+  feed_id     BigInt?
+  category_id BigInt?
+  parent      BigInt?
+  count       Int?
+
+  @@ignore
+}
+
+model app_user {
+  id                                BigInt                              @id(map: "users_pkey")
+  email                             String?                             @db.VarChar(255)
+  email_template                    String?                             @db.VarChar(20000)
+  enabled                           Boolean
+  name                              String?                             @db.VarChar(255)
+  password                          String                              @db.VarChar(100)
+  username                          String                              @unique(map: "users_username_key") @db.VarChar(255)
+  version                           Int?                                @default(0)
+  patron_id                         BigInt?
+  organisation_id                   BigInt?
+  editor                            Boolean
+  organisation                      organisation?                       @relation(fields: [organisation_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_app_user_organisation_id")
+  report_profile                    report_profile?                     @relation(fields: [patron_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_patron_id")
+  app_user_email                    app_user_email[]
+  app_user_permission               app_user_permission[]
+  app_user_report_category_template app_user_report_category_template[]
+  app_user_report_profile           app_user_report_profile[]           @ignore
+  message                           message[]
+  newsroom_user_profile             newsroom_user_profile[]
+  organisation_user                 organisation_user[]
+  report                            report[]
+  user_audit                        user_audit[]
+  vote                              vote[]
+}
+
+model app_user_email {
+  owner_id BigInt
+  email    String   @db.VarChar
+  groups   String?  @db.VarChar
+  app_user app_user @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_app_user_email_user_id")
+
+  @@id([owner_id, email])
+}
+
+model app_user_permission {
+  users       BigInt
+  permissions String   @db.VarChar(255)
+  app_user    app_user @relation(fields: [users], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "users_permissions_users_fkey")
+
+  @@id([users, permissions], map: "users_permissions_pkey")
+}
+
+model app_user_report_category_template {
+  user_id                  BigInt
+  template_id              BigInt
+  report_category_template report_category_template @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_app_user_report_category_template_template_id")
+  app_user                 app_user                 @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_app_user_report_category_template_user_id")
+
+  @@id([user_id, template_id])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model app_user_report_profile {
+  users             BigInt?
+  report_profile_id BigInt
+  id                BigInt
+  assigned          Boolean
+  completeanalysis  Boolean
+  report_profile    report_profile @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "users_clients_clients_fkey")
+  app_user          app_user?      @relation(fields: [users], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "users_clients_users_fkey")
+
+  @@ignore
+}
+
+model area_of_interest {
+  id                   BigInt                 @id
+  report_profile_id    BigInt
+  join_type            String?                @db.VarChar(15)
+  report_profile       report_profile         @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_area_of_interest_report_profile_id")
+  area_of_interest_tag area_of_interest_tag[]
+}
+
+model area_of_interest_tag {
+  area_of_interest_id BigInt
+  tag_id              BigInt
+  area_of_interest    area_of_interest @relation(fields: [area_of_interest_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_area_of_interest_tag_area_of_interest_id")
+  tag                 tag              @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_area_of_interest_tag_tag_id")
+
+  @@id([area_of_interest_id, tag_id])
+}
+
+model category_rule {
+  id                          BigInt                        @id(map: "category_rule_pk")
+  name                        String?                       @db.VarChar
+  matchtype                   String                        @db.VarChar(10)
+  owner_id                    BigInt
+  report_category_template    report_category_template      @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_rule_owner_id")
+  category_rule_category_name category_rule_category_name[]
+  category_rule_term          category_rule_term[]
+}
+
+model category_rule_category_name {
+  name          String        @db.VarChar
+  owner_id      BigInt
+  category_rule category_rule @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_rule_category_name_owner_id")
+
+  @@id([name, owner_id], map: "category_rule_category_name_pk")
+}
+
+model category_rule_term {
+  term          String        @db.VarChar
+  owner_id      BigInt
+  category_rule category_rule @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_rule_term_owner_id")
+
+  @@id([term, owner_id], map: "category_rule_term_pk")
+}
+
+model country {
+  id                     BigInt                   @id
+  name                   String                   @db.VarChar
+  code                   String?                  @db.VarChar(3)
+  enabled                Boolean
+  publication_country    publication_country[]
+  region                 region[]
+  report_profile_country report_profile_country[]
+}
+
+model custom_category {
+  id                            BigInt                      @id
+  report_profile_id             BigInt?
+  rank                          Int?                        @db.SmallInt
+  name                          String?                     @db.VarChar
+  version                       Int?                        @default(0)
+  description_syndication       String?                     @db.VarChar(1)
+  title_description_syndication String?                     @db.VarChar(1)
+  in_analysis_default           String?                     @db.Char(1)
+  report_profile                report_profile?             @relation(fields: [report_profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "client_fk_custom_category")
+  custom_category_criterion     custom_category_criterion[]
+}
+
+model custom_category_criterion {
+  id                 BigInt           @id
+  custom_category_fk BigInt?
+  term               String?          @db.VarChar
+  version            Int?             @default(0)
+  custom_category    custom_category? @relation(fields: [custom_category_fk], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "custom_category_fk_custom_category_criterion")
+}
+
+model download_schedule {
+  id                 BigInt    @id
+  feed_fk            BigInt?
+  next_download_time DateTime? @db.Timestamptz(6)
+  feed               feed?     @relation(fields: [feed_fk], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "feed_fk_download_schedule")
+
+  @@index([next_download_time], map: "download_schedule_next_download_time_index")
+}
+
+model feed {
+  id                     BigInt                @id
+  name                   String                @db.VarChar
+  url                    String?               @db.VarChar
+  default_refresh_period Int?
+  broken_url             String?               @db.Char(1)
+  version                Int?                  @default(0)
+  last_download_date     DateTime?             @db.Timestamptz(6)
+  feed_type              String?               @db.VarChar(10)
+  twitter_id             Decimal?              @db.Decimal(18, 0)
+  title_selector         String?               @db.VarChar(255)
+  description_selector   String?               @db.VarChar(255)
+  page_text_selector     String?               @db.VarChar(255)
+  store_tweets           String?               @db.Char(1)
+  location_config_id     BigInt?
+  client_searchable      Boolean
+  publication_id         BigInt?
+  complicated            Boolean
+  page_parser            String?               @db.VarChar(60)
+  breaking_news          Boolean
+  enabled                Boolean
+  manual                 Boolean
+  domiciled_region_id    BigInt?
+  mediatype              String?               @db.VarChar(30)
+  reach                  Int?                  @default(0)
+  download_schedule      download_schedule[]
+  region                 region?               @relation(fields: [domiciled_region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feed_domiciledregion_region_id")
+  publication            publication?          @relation(fields: [publication_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feed_publication_id")
+  page_location_config   page_location_config? @relation(fields: [location_config_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_location_config_id")
+  feed_recent_url        feed_recent_url[]
+  feed_region            feed_region[]
+  feed_tag               feed_tag[]
+  news_item              news_item[]
+  report_news_item       report_news_item[]
+  report_profile_feed    report_profile_feed[]
+  subscription           subscription[]
+}
+
+model feed_recent_url {
+  owner_id BigInt
+  url      String @db.VarChar
+  feed     feed   @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feed_id")
+
+  @@id([owner_id, url])
+}
+
+model feed_region {
+  feed_id   BigInt
+  region_id BigInt
+  feed      feed   @relation(fields: [feed_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feed_region_feed_id")
+  region    region @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feed_region_region_id")
+
+  @@id([feed_id, region_id])
+}
+
+model feed_tag {
+  feed_id BigInt
+  tag_id  BigInt
+  feed    feed   @relation(fields: [feed_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feed_tag_related_id")
+  tag     tag    @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_feed_tag_tag_id")
+
+  @@id([feed_id, tag_id])
+}
+
+model filter_criterion {
+  id                BigInt          @id
+  report_profile_id BigInt?
+  rank              Int?            @db.SmallInt
+  term              String?         @db.VarChar
+  version           Int?            @default(0)
+  type_enum         String          @db.VarChar
+  report_profile    report_profile? @relation(fields: [report_profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "client_fk_filter_criterion")
+}
+
+model measure {
+  id                  BigInt           @id
+  measure_value       String           @db.VarChar
+  report_news_item_id BigInt
+  template_id         BigInt
+  measure_template    measure_template @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([report_news_item_id])
+}
+
+model measure_template {
+  id                BigInt          @id
+  name              String          @db.VarChar(60)
+  enabled           Boolean
+  report_profile_id BigInt?
+  rank              Int?
+  mandatory         Boolean?
+  editable          Boolean?
+  measure           measure[]
+  report_profile    report_profile? @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model measure_template_value {
+  measure_id    BigInt
+  measure_value String @db.VarChar
+
+  @@id([measure_id, measure_value])
+}
+
+model message {
+  id               BigInt    @id
+  show_from        DateTime? @db.Timestamptz(6)
+  show_to          DateTime? @db.Timestamptz(6)
+  cleared          Boolean?  @default(false)
+  clear_on_restart Boolean?  @default(false)
+  destination      String?   @db.VarChar(20)
+  content          String?   @db.VarChar
+  user_id          BigInt
+  app_user         app_user  @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_message_user_id")
+}
+
+model news_item {
+  id              BigInt    @id(map: "_news_item_pkey")
+  link            String?   @db.VarChar
+  title           String?   @db.VarChar
+  description     String?   @db.VarChar
+  source          String?   @db.VarChar
+  date            DateTime? @db.Timestamptz(6)
+  date_downloaded DateTime? @db.Timestamptz(6)
+  feed_fk         BigInt?
+  hashcode        BigInt?   @unique(map: "_news_item_hashcode_key")
+  page_text       String?   @db.VarChar
+  feed            feed?     @relation(fields: [feed_fk], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "feed_fk_news_item")
+
+  @@index([date_downloaded], map: "_news_item_download_date_idx")
+  @@index([hashcode], map: "news_item_hashcode_index")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model news_item_copy {
+  id              BigInt
+  link            String?   @db.VarChar
+  title           String?   @db.VarChar
+  description     String?   @db.VarChar
+  source          String?   @db.VarChar
+  date            DateTime? @db.Timestamptz(6)
+  date_downloaded DateTime? @db.Timestamptz(6)
+  feed_fk         BigInt?
+  hashcode        BigInt?
+  page_text       String?   @db.VarChar
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model news_item_temp {
+  id              BigInt
+  link            String?   @db.VarChar
+  title           String?   @db.VarChar
+  description     String?   @db.VarChar
+  source          String?   @db.VarChar
+  date            DateTime? @db.Timestamptz(6)
+  date_downloaded DateTime? @db.Timestamptz(6)
+  feed_fk         BigInt?
+  hashcode        BigInt?
+  page_text       String?   @db.VarChar
+
+  @@ignore
+}
+
+model newsroom_user_profile {
+  id                                   BigInt                                 @id
+  user_id                              BigInt
+  hide_create_review_prompt            Boolean
+  app_user                             app_user                               @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_newsroom_user_profile_user_id")
+  newsroom_user_profile_viewed_message newsroom_user_profile_viewed_message[]
+  newsroom_user_profile_viewed_report  newsroom_user_profile_viewed_report[]
+}
+
+model newsroom_user_profile_viewed_message {
+  message_id            BigInt
+  owner_id              BigInt
+  newsroom_user_profile newsroom_user_profile @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_newsroom_user_profile_viewed_message_owner_id")
+
+  @@id([message_id, owner_id])
+}
+
+model newsroom_user_profile_viewed_report {
+  report_id             BigInt
+  owner_id              BigInt
+  newsroom_user_profile newsroom_user_profile @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_newsroom_user_profile_viewed_report_owner_id")
+
+  @@id([report_id, owner_id])
+}
+
+model old_news_item {
+  id              BigInt    @id
+  link            String?   @db.VarChar
+  title           String?   @db.VarChar
+  description     String?   @db.VarChar
+  source          String?   @db.VarChar
+  date            DateTime? @db.Timestamptz(6)
+  date_downloaded DateTime? @db.Timestamptz(6)
+  feed_fk         BigInt?
+  hashcode        BigInt
+  page_text       String?   @db.VarChar
+
+  @@index([date_downloaded], map: "old_news_item_download_date_idx")
+}
+
+model old_previously_output_news_item {
+  id                BigInt          @id
+  link              String?         @db.VarChar
+  date_output       DateTime?       @db.Timestamptz(6)
+  report_profile_id BigInt?
+  version           Int?            @default(0)
+  report_profile    report_profile? @relation(fields: [report_profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "old_client_fk_previously_output_news_item")
+}
+
+model organisation {
+  id                                    BigInt                                  @id(map: "organisation_pk")
+  name                                  String                                  @db.VarChar(60)
+  contact_name                          String?                                 @db.VarChar
+  email                                 String?                                 @db.VarChar
+  disabled                              Boolean?                                @default(false)
+  phone_number                          String?                                 @db.VarChar(20)
+  app_user                              app_user[]
+  organisation_email                    organisation_email[]
+  organisation_report_category_template organisation_report_category_template[]
+  organisation_user                     organisation_user[]
+  report_profile                        report_profile[]
+}
+
+model organisation_email {
+  owner_id     BigInt
+  email        String       @db.VarChar
+  groups       String?      @db.VarChar
+  organisation organisation @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_organisation_email_organisation_id")
+
+  @@id([owner_id, email])
+}
+
+model organisation_report_category_template {
+  organisation_id          BigInt
+  template_id              BigInt
+  organisation             organisation             @relation(fields: [organisation_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_organisation_report_category_template_organisation_id")
+  report_category_template report_category_template @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_organisation_report_category_template_template_id")
+
+  @@id([organisation_id, template_id])
+}
+
+model organisation_user {
+  id              BigInt       @id
+  user_id         BigInt
+  organisation_id BigInt
+  rate_items      Boolean
+  set_relevance   Boolean
+  organisation    organisation @relation(fields: [organisation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  app_user        app_user     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model page_location_config {
+  id                   BigInt  @id(map: "page_location_config_pk")
+  name                 String  @db.VarChar(60)
+  container_selector   String  @db.VarChar
+  link_selector        String  @db.VarChar
+  title_selector       String  @db.VarChar
+  description_selector String  @db.VarChar
+  sample_url           String  @db.VarChar
+  date_selector        String? @db.VarChar
+  feed                 feed[]
+}
+
+model previously_output_news_item {
+  id                BigInt          @id
+  link              String?         @db.VarChar
+  date_output       DateTime?       @db.Timestamptz(6)
+  report_profile_id BigInt?
+  version           Int?            @default(0)
+  report_profile    report_profile? @relation(fields: [report_profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "client_fk_previously_output_news_item")
+
+  @@index([date_output], map: "previously_output_news_item_date_output_index")
+  @@index([report_profile_id])
+}
+
+model publication {
+  id                    BigInt                  @id(map: "publication_pk")
+  name                  String                  @db.VarChar(60)
+  url                   String                  @db.VarChar
+  readership            Int?
+  page_parser           String?                 @db.VarChar(60)
+  domiciled_region_id   BigInt?
+  feed                  feed[]
+  region                region?                 @relation(fields: [domiciled_region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_publication_domiciledregion_region_id")
+  publication_mediatype publication_mediatype[]
+  publication_tag       publication_tag[]
+  report_news_item      report_news_item[]
+}
+
+model publication_country {
+  publication_id BigInt
+  country_id     BigInt
+  country        country @relation(fields: [country_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_publication_country_country_id")
+
+  @@id([publication_id, country_id])
+}
+
+model publication_mediatype {
+  owner_id    BigInt
+  mediatype   String      @db.VarChar(30)
+  publication publication @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_publication_mediatype_owner_id")
+
+  @@id([owner_id, mediatype])
+}
+
+model publication_region {
+  publication_id BigInt
+  region_id      BigInt
+  region         region @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_publication_region_region_id")
+
+  @@id([publication_id, region_id])
+}
+
+model publication_tag {
+  publication_id BigInt
+  tag_id         BigInt
+  publication    publication @relation(fields: [publication_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_publication_tag_related_id")
+  tag            tag         @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_publication_tag_tag_id")
+
+  @@id([publication_id, tag_id])
+}
+
+model region {
+  id                    BigInt                  @id
+  name                  String                  @db.VarChar
+  country_id            BigInt
+  enabled               Boolean
+  feed                  feed[]
+  feed_region           feed_region[]
+  publication           publication[]
+  publication_region    publication_region[]
+  country               country                 @relation(fields: [country_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  report_profile_region report_profile_region[]
+}
+
+model report {
+  id                     BigInt                   @id
+  report_type            String                   @db.VarChar(20)
+  report_profile_id      BigInt
+  creation_date          DateTime?                @db.Timestamptz(6)
+  user_id                BigInt?
+  complete               Boolean
+  report_profile         report_profile           @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "report_client_id_fkey")
+  app_user               app_user?                @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  report_exclusive_term  report_exclusive_term[]  @ignore
+  report_inclusive_term  report_inclusive_term[]  @ignore
+  report_news_item       report_news_item[]
+  report_prominence_term report_prominence_term[]
+
+  @@index([report_profile_id])
+  @@index([report_profile_id, report_type])
+}
+
+model report_category_template {
+  id                                      BigInt                                    @id(map: "report_category_template_pk")
+  name                                    String                                    @db.VarChar(60)
+  app_user_report_category_template       app_user_report_category_template[]
+  category_rule                           category_rule[]
+  organisation_report_category_template   organisation_report_category_template[]
+  report_profile_report_category_template report_profile_report_category_template[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model report_exclusive_term {
+  owner_id BigInt
+  term     String @db.VarChar
+  report   report @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_exclusive_term_report_id")
+
+  @@ignore
+}
+
+model report_gen_interval {
+  id             BigInt           @id
+  name           String?          @db.VarChar(255)
+  order_rank     Int?
+  version        Int?             @default(0)
+  report_profile report_profile[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model report_inclusive_term {
+  owner_id BigInt
+  term     String @db.VarChar
+  report   report @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_inclusive_term_report_id")
+
+  @@ignore
+}
+
+model report_news_item {
+  id                               BigInt                             @id
+  news_item_id                     BigInt
+  report_profile_id                BigInt
+  link                             String?                            @db.VarChar
+  title                            String?                            @db.VarChar
+  description                      String?                            @db.VarChar
+  source                           String?                            @db.VarChar
+  in_report                        String?                            @default("Y") @db.Char(1)
+  report_date                      DateTime?                          @db.Timestamptz(6)
+  category                         String?                            @db.VarChar
+  pub_date                         DateTime?                          @db.Timestamptz(6)
+  version                          Int?                               @default(0)
+  pageextract                      String?                            @db.VarChar
+  matchedcriteria                  String?                            @db.VarChar
+  duplicate                        String?                            @db.VarChar(1)
+  syndicated                       String?                            @db.VarChar(1)
+  original_category                String?                            @db.VarChar
+  report_id                        BigInt
+  relevant                         Boolean
+  in_analysis                      Boolean
+  high_prominence                  String                             @db.Char(1)
+  page_text_character_count        Int?                               @default(0)
+  publication_id                   BigInt?
+  feed_fk                          BigInt?
+  analysis_completed               DateTime?                          @db.Timestamptz(6)
+  feed                             feed?                              @relation(fields: [feed_fk], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_news_item_feed_fk")
+  publication                      publication?                       @relation(fields: [publication_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_news_item_publication_id")
+  report                           report                             @relation(fields: [report_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkc048d3b4381104f0")
+  report_profile                   report_profile                     @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkc048d3b4c268e990")
+  report_news_item_ratings         report_news_item_ratings[]
+  report_profile_not_relevant_item report_profile_not_relevant_item[]
+
+  @@index([report_date], map: "rep_date_idx")
+  @@index([pub_date])
+  @@index([report_id])
+  @@index([report_profile_id])
+}
+
+model report_news_item_ratings {
+  report_news_item_id BigInt
+  vote_id             BigInt
+  report_news_item    report_news_item @relation(fields: [report_news_item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_news_item_ratings_report_news_item_id")
+  vote                vote             @relation(fields: [vote_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_news_item_ratings_vote_id")
+
+  @@id([report_news_item_id, vote_id])
+}
+
+model report_profile {
+  id                                      BigInt                                    @id(map: "client_pkey")
+  name                                    String?                                   @db.VarChar
+  contact_name                            String?                                   @db.VarChar
+  email                                   String?                                   @db.VarChar
+  stylesheet_location                     String?                                   @db.VarChar
+  disabled                                String?                                   @db.Char(1)
+  includenewest                           String?                                   @db.Char(1)
+  usetitlefilter                          String?                                   @db.Char(1)
+  usedesconlyfilter                       String?                                   @db.Char(1)
+  cheat_sheet                             String?                                   @db.VarChar(20000)
+  default_report_type                     String?                                   @default("pdf") @db.VarChar(255)
+  image_name                              String?                                   @db.VarChar(255)
+  version                                 Int?                                      @default(0)
+  report_generation_interval              BigInt?                                   @default(0)
+  contract_expiry                         DateTime?                                 @db.Date
+  last_contact                            DateTime?                                 @db.Date
+  notes                                   String?                                   @db.VarChar(1000)
+  phone_number                            String?                                   @db.VarChar(255)
+  report_last_sent                        DateTime?                                 @db.Timestamp(6)
+  hide_matched_criteria                   Boolean?
+  use_desc_on_report                      String?                                   @db.Char(1)
+  image_mobile_name                       String?                                   @db.VarChar(255)
+  image_full_name                         String?                                   @db.VarChar(255)
+  image_tablet_name                       String?                                   @db.VarChar(255)
+  auto_report                             String?                                   @db.Char(1)
+  pressdisplayoverride                    String?                                   @db.VarChar(10)
+  reportlastgeneratedoverride             DateTime?                                 @db.Date
+  publishable_report_types                String?                                   @db.VarChar
+  organisation_id                         BigInt?
+  autoreportinterval                      Int?
+  autoreportlastattempted                 DateTime?                                 @db.Timestamptz(6)
+  autoreportsendtime                      String?                                   @db.VarChar(5)
+  analysis_start_date                     DateTime?                                 @db.Timestamptz(6)
+  link_to_analysis                        String?                                   @db.VarChar(255)
+  app_user                                app_user[]
+  app_user_report_profile                 app_user_report_profile[]                 @ignore
+  area_of_interest                        area_of_interest[]
+  custom_category                         custom_category[]
+  filter_criterion                        filter_criterion[]
+  measure_template                        measure_template[]
+  old_previously_output_news_item         old_previously_output_news_item[]
+  previously_output_news_item             previously_output_news_item[]
+  report                                  report[]
+  report_news_item                        report_news_item[]
+  organisation                            organisation?                             @relation(fields: [organisation_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_client_organisation_id")
+  report_gen_interval                     report_gen_interval?                      @relation(fields: [report_generation_interval], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkaf12f3cb41423d08")
+  report_profile_country                  report_profile_country[]
+  report_profile_email                    report_profile_email[]
+  report_profile_feed                     report_profile_feed[]
+  report_profile_mediatype                report_profile_mediatype[]
+  report_profile_not_relevant_item        report_profile_not_relevant_item[]
+  report_profile_region                   report_profile_region[]
+  report_profile_report_category_template report_profile_report_category_template[]
+  subscription                            subscription[]
+}
+
+model report_profile_country {
+  report_profile_id BigInt
+  country_id        BigInt
+  country           country        @relation(fields: [country_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_country_country_id")
+  report_profile    report_profile @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_country_report_profile_id")
+
+  @@id([report_profile_id, country_id])
+}
+
+model report_profile_email {
+  owner_id       BigInt
+  email          String         @db.VarChar
+  groups         String?        @db.VarChar
+  report_profile report_profile @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_client_email_client_id")
+
+  @@id([owner_id, email], map: "client_email_pkey")
+}
+
+model report_profile_feed {
+  report_profile_id BigInt
+  feed_id           BigInt
+  feed              feed           @relation(fields: [feed_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_feed_feed_id")
+  report_profile    report_profile @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_feed_report_profile_id")
+
+  @@id([report_profile_id, feed_id])
+}
+
+model report_profile_mediatype {
+  owner_id       BigInt
+  mediatype      String         @db.VarChar(30)
+  report_profile report_profile @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_mediatype_owner_id")
+
+  @@id([owner_id, mediatype])
+}
+
+model report_profile_not_relevant_item {
+  report_profile_id   BigInt
+  report_news_item_id BigInt
+  report_news_item    report_news_item @relation(fields: [report_news_item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_not_relevant_item_report_news_item_id")
+  report_profile      report_profile   @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_not_relevant_item_report_profile_id")
+
+  @@id([report_profile_id, report_news_item_id])
+}
+
+model report_profile_region {
+  report_profile_id BigInt
+  region_id         BigInt
+  region            region         @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_region_region_id")
+  report_profile    report_profile @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_profile_region_report_profile_id")
+
+  @@id([report_profile_id, region_id])
+}
+
+model report_profile_report_category_template {
+  report_profile_id        BigInt
+  template_id              BigInt
+  report_profile           report_profile           @relation(fields: [report_profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_client_report_category_template_client_id")
+  report_category_template report_category_template @relation(fields: [template_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_client_report_category_template_template_id")
+
+  @@id([report_profile_id, template_id], map: "client_report_category_template_pkey")
+}
+
+model report_prominence_term {
+  owner_id BigInt
+  term     String @db.VarChar
+  report   report @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_report_prominence_term_report_id")
+
+  @@id([owner_id, term])
+}
+
+model schema_version {
+  version_rank   Int
+  installed_rank Int
+  version        String   @id(map: "schema_version_pk") @db.VarChar(50)
+  description    String   @db.VarChar(200)
+  type           String   @db.VarChar(20)
+  script         String   @db.VarChar(1000)
+  checksum       Int?
+  installed_by   String   @db.VarChar(100)
+  installed_on   DateTime @default(now()) @db.Timestamp(6)
+  execution_time Int
+  success        Boolean
+
+  @@index([installed_rank], map: "schema_version_ir_idx")
+  @@index([success], map: "schema_version_s_idx")
+  @@index([version_rank], map: "schema_version_vr_idx")
+}
+
+model sph_counter {
+  counter_id Int @id
+  max_doc_id Int
+}
+
+model subscription {
+  id                BigInt          @id
+  report_profile_id BigInt?
+  feed_fk           BigInt?
+  refresh_period    Int?
+  disabled          String?         @db.Char(1)
+  version           Int?
+  report_profile    report_profile? @relation(fields: [report_profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "client_fk_subscription")
+  feed              feed?           @relation(fields: [feed_fk], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "feed_fk_subscription")
+
+  @@index([report_profile_id], map: "subscription_client_fk_index")
+  @@index([report_profile_id, feed_fk])
+}
+
+model tag {
+  id                              BigInt                 @id
+  name                            String?                @unique(map: "name_unique") @db.VarChar
+  purpose                         String?                @db.VarChar
+  area_of_interest_tag            area_of_interest_tag[]
+  feed_tag                        feed_tag[]
+  publication_tag                 publication_tag[]
+  tag_tag_tag_tag_related_idTotag tag_tag[]              @relation("tag_tag_related_idTotag")
+  tag_tag_tag_tag_tag_idTotag     tag_tag[]              @relation("tag_tag_tag_idTotag")
+}
+
+model tag_tag {
+  tag_id                      BigInt
+  related_id                  BigInt
+  tag_tag_tag_related_idTotag tag    @relation("tag_tag_related_idTotag", fields: [related_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tag_tag_related_id")
+  tag_tag_tag_tag_idTotag     tag    @relation("tag_tag_tag_idTotag", fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tag_tag_tag_id")
+
+  @@id([tag_id, related_id])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model temp_final_measure_values_upload {
+  id                  BigInt?
+  measure_value       String? @db.VarChar(255)
+  report_news_item_id BigInt?
+  template_id         BigInt?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model temp_measure_analysis {
+  excel_id                 BigInt
+  month                    String?   @db.VarChar
+  published_date           DateTime? @db.Timestamptz(6)
+  source                   String?   @db.VarChar
+  title                    String?   @db.VarChar
+  description              String?   @db.VarChar
+  link                     String?   @db.VarChar
+  category                 String?   @db.VarChar
+  matchedcriteria          String?   @db.VarChar
+  parent_source            String?   @db.VarChar
+  media_type               String?   @db.VarChar
+  region                   String?   @db.VarChar
+  leadership               String?   @db.VarChar
+  prominence_voice         String?   @db.VarChar
+  prominence_brand         Int?      @default(0)
+  headline                 String?   @db.VarChar
+  visual                   String?   @db.VarChar
+  topic_1                  String?   @db.VarChar
+  topic_1_tone             String?   @db.VarChar
+  tone_towards_client      String?   @db.VarChar
+  no_of_external_advocates Int?      @default(0)
+  no_of_external_critics   Int?      @default(0)
+  report_news_item         BigInt?
+
+  @@ignore
+}
+
+model temp_measure_analysis_abbas {
+  index               Int       @id @default(autoincrement())
+  report_profile_id   BigInt?
+  report_profile_name String?   @db.VarChar
+  published_date      DateTime? @db.Timestamptz(6)
+  source              String?   @db.VarChar
+  title               String?   @db.VarChar
+  description         String?   @db.VarChar
+  link                String?   @db.VarChar
+  category            String?   @db.VarChar
+  matchedcriteria     String?   @db.VarChar
+  parent_source       String?   @db.VarChar
+  media_type          String?   @db.VarChar
+  region              String?   @db.VarChar
+}
+
+model tempnames {
+  lastname String? @db.VarChar(80)
+  id       Int     @id @default(autoincrement())
+}
+
+model user_audit {
+  id          BigInt   @id
+  occurred_at DateTime @db.Timestamptz(6)
+  event_type  String   @db.VarChar(20)
+  detail      String?  @db.VarChar
+  user_id     BigInt
+  app_user    app_user @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_audit_user_id")
+}
+
+model vote {
+  id                       BigInt                     @id
+  user_id                  BigInt
+  value                    Int
+  report_news_item_ratings report_news_item_ratings[]
+  app_user                 app_user                   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_vote_user_id")
+}

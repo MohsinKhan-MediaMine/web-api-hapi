@@ -1,0 +1,47 @@
+{
+  "name": "mediamine-web-api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "postinstall": "yarn run prisma:generate:mediamine",
+    "dev": "nodemon src/index.ts",
+    "start": "node src/index.js",
+    "build": "tsc src/index.ts",
+    "format": "prettier ./src/**/*.ts --write",
+    "prisma:generate:mediamine": "prisma generate --schema ./prisma/schema.mediamine.prisma",
+    "prisma:db:push:mediamine": "prisma db push --schema ./prisma/schema.mediamine.prisma"
+  },
+  "dependencies": {
+    "@hapi/hapi": "^21.3.2",
+    "@hapi/jwt": "^3.2.0",
+    "@prisma/client": "^5.2.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/hapi": "^18.0.10",
+    "@types/node": "^20.6.0",
+    "axios": "^1.6.5",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.4.5",
+    "jose": "^5.2.4",
+    "json-2-csv": "^5.5.1",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "luxon": "^3.4.4",
+    "prisma": "^5.2.0",
+    "qs": "^6.12.0",
+    "query-string": "^9.1.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2",
+    "uuid": "^9.0.1",
+    "zerobounce": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.7",
+    "@types/luxon": "^3.4.2",
+    "@types/qs": "^6.9.14",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.3.3",
+    "prettier-plugin-organize-imports": "^4.0.0"
+  }
+}

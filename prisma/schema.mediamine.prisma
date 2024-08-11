@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../.prisma/client/mediamine"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_MEDIAMINE")
+}
+
+model journalist {
+  id            BigInt                   @id @default(autoincrement())
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  uuid          String                   @db.VarChar
+  first_name    String                   @db.VarChar
+  last_name     String?                  @db.VarChar
+  email         String                   @db.VarChar
+  phone         String?                  @db.VarChar
+  ddi           String?                  @db.VarChar
+  mobile        String?                  @db.VarChar
+  linkedin      String?                  @db.VarChar
+  twitter       String?                  @db.VarChar
+  datasource    String?                  @db.VarChar
+  valid_email   Boolean                  @default(true) @db.Boolean
+  user_approved Boolean                  @default(false) @db.Boolean
+  validatedAt   DateTime?                @db.Timestamp()
+  enabled       Boolean                  @default(true) @db.Boolean
+  format_types  journalist_format_type[]
+  news_types    journalist_news_type[]
+  role_types    journalist_role_type[]
+  publications  journalist_publication[]
+  regions       journalist_region[]
+}
+
+model format_type {
+  id                     BigInt                   @id @default(autoincrement())
+  uuid                   String                   @db.VarChar
+  name                   String                   @db.VarChar
+  description            String?                  @db.VarChar
+  journalist_format_type journalist_format_type[]
+}
+
+model journalist_format_type {
+  journalist     journalist  @relation(fields: [journalist_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  journalist_id  BigInt      @db.BigInt
+  format_type    format_type @relation(fields: [format_type_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  format_type_id BigInt      @db.BigInt
+  createdAt      DateTime    @default(now())
+
+  @@id([journalist_id, format_type_id])
+}
+
+model news_type {
+  id                   BigInt                 @id @default(autoincrement())
+  uuid                 String                 @db.VarChar
+  name                 String                 @db.VarChar
+  description          String?                @db.VarChar
+  journalist_news_type journalist_news_type[]
+}
+
+model journalist_news_type {
+  journalist    journalist @relation(fields: [journalist_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  journalist_id BigInt     @db.BigInt
+  news_type     news_type  @relation(fields: [news_type_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  news_type_id  BigInt     @db.BigInt
+  createdAt     DateTime   @default(now())
+
+  @@id([journalist_id, news_type_id])
+}
+
+model role_type {
+  id          BigInt                 @id @default(autoincrement())
+  uuid        String                 @db.VarChar
+  name        String                 @db.VarChar
+  description String?                @db.VarChar
+  journalists journalist_role_type[]
+}
+
+model journalist_role_type {
+  journalist    journalist @relation(fields: [journalist_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  journalist_id BigInt     @db.BigInt
+  role_type     role_type  @relation(fields: [role_type_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  role_type_id  BigInt     @db.BigInt
+  createdAt     DateTime   @default(now())
+
+  @@id([journalist_id, role_type_id])
+}
+
+model journalist_publication {
+  journalist     journalist @relation(fields: [journalist_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  journalist_id  BigInt     @db.BigInt
+  publication_id BigInt     @db.BigInt
+  createdAt      DateTime   @default(now())
+
+  @@id([journalist_id, publication_id])
+}
+
+model journalist_region {
+  journalist    journalist @relation(fields: [journalist_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  journalist_id BigInt     @db.BigInt
+  region_id     BigInt     @db.BigInt
+  createdAt     DateTime   @default(now())
+
+  @@id([journalist_id, region_id])
+}
+
+model publication_type {
+  id          BigInt  @id @default(autoincrement())
+  uuid        String  @db.VarChar
+  tier        String  @db.VarChar
+  name        String  @db.VarChar
+  description String? @db.VarChar
+}
+
+model journalist_search {
+  id          BigInt   @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  uuid        String   @db.VarChar
+  name        String   @db.VarChar
+  description String?  @db.VarChar
+  user_id     BigInt   @db.BigInt
+  search      Json?    @db.JsonB
+  journalists Json?    @db.JsonB
+}
+
+model journalist_select {
+  id          BigInt   @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  uuid        String   @db.VarChar
+  name        String   @db.VarChar
+  description String?  @db.VarChar
+  user_id     BigInt   @db.BigInt
+  search      Json     @db.JsonB
+}
