@@ -12,7 +12,7 @@ exports.plugin = {
 
     server.route({
       method: 'POST',
-      path: '/login',
+      path: '/auth/login',
       options: {
         auth: false
       },
