@@ -1,1 +1,3 @@
+DEPRECATED 
+
 # web-api-hapi
